@@ -45,7 +45,8 @@ fn setup_custom_fonts(ctx: &egui::Context) {
 
 #[derive(Default)]
 struct MainWindow{
-    code: String
+    code: String,
+    cursor_pos: usize,
 }
 
 
@@ -56,26 +57,37 @@ impl eframe::App for MainWindow {
             for event in &input.events {
                 if let egui::Event::Text(text) = event {
                     if text == "(" {
-                        self.code.push_str(")");
+                        self.code.insert_str(self.cursor_pos, ")")
                     }
                     if text == "{" {
-                        self.code.push_str("}");
+                        self.code.insert_str(self.cursor_pos, "}")
+                    }
+                    if text == "[" {
+                        self.code.insert_str(self.cursor_pos, "]")
                     }
                 }
+
             }
         });
 
 
-
         egui::CentralPanel::default().show(ctx, |ui| {
-            CodeEditor::default()
+            let editor = CodeEditor::default()
                 .id_source("code editor")
+                .vscroll(true)
                 .with_rows(12)
                 .with_fontsize(14.0)
                 .with_theme(ColorTheme::AYU_DARK)
                 .with_syntax(Syntax::cherry_blossom())
                 .with_numlines(true)
                 .show(ui, &mut self.code);
+
+            if editor.response.has_focus(){
+                if let ccursor = editor.cursor_range.unwrap().primary.ccursor.index {
+                    self.cursor_pos = ccursor;
+                }
+            }
+
         });
     }
 }
