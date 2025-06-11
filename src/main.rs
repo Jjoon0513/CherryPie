@@ -4,7 +4,7 @@ mod cherryblossom;
 use eframe::egui;
 use std::fs;
 use std::sync::Arc;
-use egui_code_editor::{self, highlighting::Token, CodeEditor, ColorTheme, Syntax};
+use egui_code_editor::{self, CodeEditor, ColorTheme, Syntax};
 use crate::cherryblossom::CherryBlossomSyntax;
 
 fn main() -> Result<(), eframe::Error> {
@@ -51,23 +51,134 @@ struct MainWindow{
 
 
 impl eframe::App for MainWindow {
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        ctx.set_visuals(egui::Visuals::dark());
 
         ctx.input(|input| {
             for event in &input.events {
-                if let egui::Event::Text(text) = event {
-                    if text == "(" {
-                        self.code.insert_str(self.cursor_pos, ")")
+                match event {
+                    egui::Event::Text(text) => {
+                        if text == "(" {
+                            self.code.insert_str(self.cursor_pos, ")")
+                        }
+                        if text == "{" {
+                            self.code.insert_str(self.cursor_pos, "}")
+                        }
+                        if text == "[" {
+                            self.code.insert_str(self.cursor_pos, "]")
+                        }
+                        if text == "\"" {
+                            self.code.insert_str(self.cursor_pos, "\"")
+                        }
+                        if text == "\'" {
+                            self.code.insert_str(self.cursor_pos, "\'")
+                        }
                     }
-                    if text == "{" {
-                        self.code.insert_str(self.cursor_pos, "}")
+                    egui::Event::Key {
+                        key: egui::Key::Backspace,
+                        pressed: true,
+                        repeat: false,
+                        ..
+                    } => {
+                        let mut chars: Vec<char> = self.code.chars().collect();
+
+                        if self.cursor_pos > 0 {
+                            if let Some(ch) = self.code.chars().nth(self.cursor_pos - 1) {
+                                if ch == '(' {
+                                    if self.cursor_pos < chars.len() && chars[self.cursor_pos] == ')' {
+                                        chars.remove(self.cursor_pos);
+                                        self.code = chars.into_iter().collect();
+                                    }
+                                } else if ch == '[' {
+                                    if self.cursor_pos < chars.len() && chars[self.cursor_pos] == ']' {
+                                        chars.remove(self.cursor_pos);
+                                        self.code = chars.into_iter().collect();
+                                    }
+                                } else if ch == '{' {
+                                    if self.cursor_pos < chars.len() && chars[self.cursor_pos] == '}' {
+                                        chars.remove(self.cursor_pos);
+                                        self.code = chars.into_iter().collect();
+                                    }
+                                } else if ch == '\'' {
+                                    if self.cursor_pos < chars.len() && chars[self.cursor_pos] == '\'' {
+                                        chars.remove(self.cursor_pos);
+                                        self.code = chars.into_iter().collect();
+                                    }
+                                } else if ch == '\"' {
+                                    if self.cursor_pos < chars.len() && chars[self.cursor_pos] == '\"' {
+                                        chars.remove(self.cursor_pos);
+                                        self.code = chars.into_iter().collect();
+                                    }
+                                }
+                            }
+
+                        }
                     }
-                    if text == "[" {
-                        self.code.insert_str(self.cursor_pos, "]")
+                    egui::Event::Key {
+                        key: egui::Key::Enter,
+                        pressed: true,
+                        repeat: false,
+                        ..
+                    } => {
+
+
+
+                        if self.cursor_pos > 0 {
+                            let chars: Vec<char> = self.code.chars().collect();
+
+                            let char_pos = self.code[..self.cursor_pos].chars().count();
+
+                            if let Some(&ch) = chars.get(char_pos - 1) {
+                                if ch == '{' {
+                                    let codesliced: Vec<char> = chars[..char_pos].to_vec();
+
+                                    let open = codesliced.iter().filter(|&&c| c == '{').count();
+                                    let close = codesliced.iter().filter(|&&c| c == '}').count();
+                                    let indent = open.saturating_sub(close);
+
+                                    if let Some(&next_ch) = chars.get(char_pos) {
+                                        if next_ch == '}' {
+
+                                            let byte_index = self.code.char_indices().nth(char_pos).map(|(i, _)| i).unwrap();
+                                            println!("open count: {}",open);
+                                            println!("close count: {}",close);
+                                            println!("indent count: {}",indent);
+                                            self.code.insert_str(byte_index - 1, &format!("{}", "\t".repeat(indent)));
+                                            self.code.insert_str(byte_index, &format!("{}", "}"))
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
+                    _ => {}
                 }
 
+
             }
+        });
+
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    if ui.button("Open").clicked() {
+                        println!("Open clicked");
+                        ui.close_menu();
+                    }
+                    if ui.button("Save").clicked() {
+                        println!("Save clicked");
+                        ui.close_menu();
+                    }
+                });
+
+                ui.menu_button("Edit", |ui| {
+                    if ui.button("Undo").clicked() {
+                        println!("Undo clicked");
+                        ui.close_menu();
+                    }
+                });
+            });
         });
 
 
@@ -75,7 +186,7 @@ impl eframe::App for MainWindow {
             let editor = CodeEditor::default()
                 .id_source("code editor")
                 .vscroll(true)
-                .with_rows(12)
+                .with_rows(100)
                 .with_fontsize(14.0)
                 .with_theme(ColorTheme::AYU_DARK)
                 .with_syntax(Syntax::cherry_blossom())
@@ -83,9 +194,7 @@ impl eframe::App for MainWindow {
                 .show(ui, &mut self.code);
 
             if editor.response.has_focus(){
-                if let ccursor = editor.cursor_range.unwrap().primary.ccursor.index {
-                    self.cursor_pos = ccursor;
-                }
+                self.cursor_pos = editor.cursor_range.unwrap().primary.ccursor.index
             }
 
         });
