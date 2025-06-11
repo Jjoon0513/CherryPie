@@ -3,8 +3,10 @@ mod cherryblossom;
 
 use eframe::egui;
 use std::fs;
+use std::io::Cursor;
 use std::sync::Arc;
-use egui_code_editor::{self, CodeEditor, ColorTheme, Syntax};
+use eframe::egui::text::CCursor;
+use egui_code_editor::{self, CodeEditor, ColorTheme, Syntax, Editor};
 use crate::cherryblossom::CherryBlossomSyntax;
 
 fn main() -> Result<(), eframe::Error> {
@@ -139,17 +141,18 @@ impl eframe::App for MainWindow {
 
                                     if let Some(&next_ch) = chars.get(char_pos) {
                                         if next_ch == '}' {
-
                                             let byte_index = self.code.char_indices().nth(char_pos).map(|(i, _)| i).unwrap();
-                                            println!("open count: {}",open);
-                                            println!("close count: {}",close);
-                                            println!("indent count: {}",indent);
-                                            self.code.insert_str(byte_index - 1, &format!("{}", "\t".repeat(indent)));
-                                            self.code.insert_str(byte_index, &format!("{}", "}"))
+
+                                            // 기존 '}'를 포함한 한 글자 범위를
+                                            // 줄바꿈 + 들여쓰기 + 닫는 중괄호로 대체
+                                            let replacement = format!("{}\n{}", "\t".repeat(indent), "}");
+                                            self.code.replace_range(byte_index..=byte_index, &replacement);
                                         }
                                     }
                                 }
                             }
+
+
                         }
                     }
                     _ => {}
