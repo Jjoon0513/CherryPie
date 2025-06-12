@@ -1,13 +1,10 @@
 
 mod cherryblossom;
+mod mainwindow;
 
 use eframe::egui;
 use std::fs;
-use std::io::Cursor;
 use std::sync::Arc;
-use eframe::egui::text::CCursor;
-use egui_code_editor::{self, CodeEditor, ColorTheme, Syntax, Editor};
-use crate::cherryblossom::CherryBlossomSyntax;
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions::default();
@@ -16,190 +13,43 @@ fn main() -> Result<(), eframe::Error> {
         options,
         Box::new(|cc| {
             setup_custom_fonts(&cc.egui_ctx);
-            Ok(Box::new(MainWindow::default()))
+            Ok(Box::new(mainwindow::MainWindow::default()))
         }))
 }
-
 fn setup_custom_fonts(ctx: &egui::Context) {
-    use egui::FontData;
-    use egui::FontDefinitions;
-    use egui::FontFamily::Proportional;
+    use egui::{FontData, FontDefinitions, FontFamily};
+    use std::collections::BTreeMap;
 
-    let mut fonts = FontDefinitions::default();
+    let mut fonts = FontDefinitions {
+        font_data: BTreeMap::new(),
+        families: BTreeMap::new(),
+    };
 
-    if let Ok(font_data) = fs::read("fonts/GothicA1-Bold.ttf") {
+    // 1. JetBrainsMono (영어용)
+    if let Ok(jetbrains) = fs::read("fonts/JetBrainsMono-Regular.ttf") {
         fonts.font_data.insert(
-            "my_font".to_owned(),
-            Arc::from(FontData::from_owned(font_data)),
+            "english".to_owned(),
+            Arc::from(FontData::from_owned(jetbrains)),
         );
-
-        fonts
-            .families
-            .get_mut(&Proportional)
-            .unwrap()
-            .insert(0, "my_font".to_owned());
-
-        ctx.set_fonts(fonts);
     }
-}
 
-
-
-#[derive(Default)]
-struct MainWindow{
-    code: String,
-    cursor_pos: usize,
-}
-
-
-impl eframe::App for MainWindow {
-
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ctx.set_visuals(egui::Visuals::dark());
-
-        ctx.input(|input| {
-            for event in &input.events {
-                match event {
-                    egui::Event::Text(text) => {
-                        if text == "(" {
-                            self.code.insert_str(self.cursor_pos, ")")
-                        }
-                        if text == "{" {
-                            self.code.insert_str(self.cursor_pos, "}")
-                        }
-                        if text == "[" {
-                            self.code.insert_str(self.cursor_pos, "]")
-                        }
-                        if text == "\"" {
-                            self.code.insert_str(self.cursor_pos, "\"")
-                        }
-                        if text == "\'" {
-                            self.code.insert_str(self.cursor_pos, "\'")
-                        }
-                    }
-                    egui::Event::Key {
-                        key: egui::Key::Backspace,
-                        pressed: true,
-                        repeat: false,
-                        ..
-                    } => {
-                        let mut chars: Vec<char> = self.code.chars().collect();
-
-                        if self.cursor_pos > 0 {
-                            if let Some(ch) = self.code.chars().nth(self.cursor_pos - 1) {
-                                if ch == '(' {
-                                    if self.cursor_pos < chars.len() && chars[self.cursor_pos] == ')' {
-                                        chars.remove(self.cursor_pos);
-                                        self.code = chars.into_iter().collect();
-                                    }
-                                } else if ch == '[' {
-                                    if self.cursor_pos < chars.len() && chars[self.cursor_pos] == ']' {
-                                        chars.remove(self.cursor_pos);
-                                        self.code = chars.into_iter().collect();
-                                    }
-                                } else if ch == '{' {
-                                    if self.cursor_pos < chars.len() && chars[self.cursor_pos] == '}' {
-                                        chars.remove(self.cursor_pos);
-                                        self.code = chars.into_iter().collect();
-                                    }
-                                } else if ch == '\'' {
-                                    if self.cursor_pos < chars.len() && chars[self.cursor_pos] == '\'' {
-                                        chars.remove(self.cursor_pos);
-                                        self.code = chars.into_iter().collect();
-                                    }
-                                } else if ch == '\"' {
-                                    if self.cursor_pos < chars.len() && chars[self.cursor_pos] == '\"' {
-                                        chars.remove(self.cursor_pos);
-                                        self.code = chars.into_iter().collect();
-                                    }
-                                }
-                            }
-
-                        }
-                    }
-                    egui::Event::Key {
-                        key: egui::Key::Enter,
-                        pressed: true,
-                        repeat: false,
-                        ..
-                    } => {
-
-
-
-                        if self.cursor_pos > 0 {
-                            let chars: Vec<char> = self.code.chars().collect();
-
-                            let char_pos = self.code[..self.cursor_pos].chars().count();
-
-                            if let Some(&ch) = chars.get(char_pos - 1) {
-                                if ch == '{' {
-                                    let codesliced: Vec<char> = chars[..char_pos].to_vec();
-
-                                    let open = codesliced.iter().filter(|&&c| c == '{').count();
-                                    let close = codesliced.iter().filter(|&&c| c == '}').count();
-                                    let indent = open.saturating_sub(close);
-
-                                    if let Some(&next_ch) = chars.get(char_pos) {
-                                        if next_ch == '}' {
-                                            let byte_index = self.code.char_indices().nth(char_pos).map(|(i, _)| i).unwrap();
-
-                                            // 기존 '}'를 포함한 한 글자 범위를
-                                            // 줄바꿈 + 들여쓰기 + 닫는 중괄호로 대체
-                                            let replacement = format!("{}\n{}", "\t".repeat(indent), "}");
-                                            self.code.replace_range(byte_index..=byte_index, &replacement);
-                                        }
-                                    }
-                                }
-                            }
-
-
-                        }
-                    }
-                    _ => {}
-                }
-
-
-            }
-        });
-
-        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Open").clicked() {
-                        println!("Open clicked");
-                        ui.close_menu();
-                    }
-                    if ui.button("Save").clicked() {
-                        println!("Save clicked");
-                        ui.close_menu();
-                    }
-                });
-
-                ui.menu_button("Edit", |ui| {
-                    if ui.button("Undo").clicked() {
-                        println!("Undo clicked");
-                        ui.close_menu();
-                    }
-                });
-            });
-        });
-
-
-        egui::CentralPanel::default().show(ctx, |ui| {
-            let editor = CodeEditor::default()
-                .id_source("code editor")
-                .vscroll(true)
-                .with_rows(100)
-                .with_fontsize(14.0)
-                .with_theme(ColorTheme::AYU_DARK)
-                .with_syntax(Syntax::cherry_blossom())
-                .with_numlines(true)
-                .show(ui, &mut self.code);
-
-            if editor.response.has_focus(){
-                self.cursor_pos = editor.cursor_range.unwrap().primary.ccursor.index
-            }
-
-        });
+    // 2. GothicA1 (한글용)
+    if let Ok(korean) = fs::read("fonts/NotoSansKR-Regular.ttf") {
+        fonts.font_data.insert(
+            "korean".to_owned(),
+            Arc::from(FontData::from_owned(korean)),
+        );
     }
+
+    // 3. Proportional font priority
+    fonts
+        .families
+        .insert(FontFamily::Proportional, vec!["english".to_owned(), "korean".to_owned()]);
+
+    // 4. Monospace도 설정할 수 있음 (코드용)
+    fonts
+        .families
+        .insert(FontFamily::Monospace, vec!["english".to_owned(), "korean".to_owned()]);
+
+    ctx.set_fonts(fonts);
 }

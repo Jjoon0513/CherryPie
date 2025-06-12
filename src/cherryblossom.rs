@@ -14,7 +14,8 @@ impl CherryBlossomSyntax for Syntax {
             comment_multiline: ["/*", "*/"],
             hyperlinks: BTreeSet::from(["https"]),
             keywords: BTreeSet::from([
-                "f", "auto", "var", "return", "bring", "cycle", "if", "else", "stem", "un"
+                "f", "auto", "var", "return", "bring", "cycle",
+                "if", "else", "stem", "un", "begin", "end"
             ]),
             types: BTreeSet::from([
                 "int",
@@ -28,7 +29,7 @@ impl CherryBlossomSyntax for Syntax {
                 "intptr", "uintptr", "size", "ptrdiff",
                 "void",
             ]),
-            special: BTreeSet::from(["true", "false", "none", "@"]),
+            special: BTreeSet::from(["true", "false", "none", "@", "ugly", "main"]),
         }
     }
 }
