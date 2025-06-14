@@ -4,6 +4,7 @@ use crate::cherryblossom::CherryBlossomSyntax;
 use std::fs;
 use std::path::PathBuf;
 use rfd::FileDialog;
+use std::process::Command;
 
 #[derive(Default)]
 pub struct MainWindow{
@@ -176,7 +177,24 @@ impl eframe::App for MainWindow {
 
                 ui.menu_button("실행", |ui| {
                     if ui.button("프로젝트 실행").clicked() {
-                        println!("Undo clicked");
+
+                        let cmd = Command::new("cmd")
+                            .args(&["/C", &format!(
+                                "start \"\" cmd /K \"cd /d {} && cherry {}\"",
+                                self.filepath
+                                    .parent()
+                                    .unwrap()
+                                    .to_string_lossy()
+                                    .replace('\\', "/"),
+                                self.filepath
+                                    .file_name()
+                                    .unwrap()
+                                    .to_string_lossy()
+                            )])
+                            .spawn()
+                            .expect("failed to open new cmd");
+
+
                         ui.close_menu();
                     }
                 });
