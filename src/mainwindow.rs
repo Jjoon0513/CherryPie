@@ -4,6 +4,7 @@ use crate::cherryblossom::CherryBlossomSyntax;
 use std::fs;
 use std::path::PathBuf;
 use rfd::FileDialog;
+use std::process::Command;
 
 #[derive(Default)]
 pub struct MainWindow{
@@ -122,7 +123,7 @@ impl eframe::App for MainWindow {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("파일", |ui| {
                     if ui.button("열기").clicked() {
-                        if let Some(path) = FileDialog::new().add_filter("CB 파일", &["cb"]).pick_file() {
+                        if let Some(path) = FileDialog::new().pick_file() {
                             self.filepath = path.clone();
                             match fs::read_to_string(&path) {
                                 Ok(content) => {
@@ -162,6 +163,7 @@ impl eframe::App for MainWindow {
 
                 ui.menu_button("에딧", |ui| {
                     if ui.button("뒤로가기").clicked() {
+                        println!("Undo clicked");
                         ui.close_menu();
                     }
                 });
@@ -175,6 +177,23 @@ impl eframe::App for MainWindow {
 
                 ui.menu_button("실행", |ui| {
                     if ui.button("프로젝트 실행").clicked() {
+
+                        let cmd = Command::new("cmd")
+                            .args(&["/C", &format!(
+                                "start \"\" cmd /K \"cd /d {} && cherry {}\"",
+                                self.filepath
+                                    .parent()
+                                    .unwrap()
+                                    .to_string_lossy()
+                                    .replace('\\', "/"),
+                                self.filepath
+                                    .file_name()
+                                    .unwrap()
+                                    .to_string_lossy()
+                            )])
+                            .spawn()
+                            .expect("failed to open new cmd");
+
 
                         ui.close_menu();
                     }
