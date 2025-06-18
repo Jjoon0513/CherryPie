@@ -5,6 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use rfd::FileDialog;
 use std::process::Command;
+use eframe::egui::Id;
 use crate::util::{system, menubar};
 use system::cherrypie_input_system;
 use menubar::manubar;
@@ -15,38 +16,59 @@ pub struct MainWindow{
     pub code: String,
     pub cursor_pos: usize,
     pub filepath: PathBuf,
+    pub console: String,
+    pub isconsoleeditable: bool,
+    pub consoleinput: String,
 }
 
 
 impl eframe::App for MainWindow {
-
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+
+
         ctx.set_visuals(egui::Visuals::dark());
 
         ctx.input(|input| {
             cherrypie_input_system(self, input)
         });
 
+        egui::TopBottomPanel::bottom("console")
+            .resizable(true)
+            .show(ctx, |ui| {
+                ui.label("콘솔");
+
+                egui::Frame::none()
+                    .fill(ui.visuals().panel_fill)
+                    .show(ui, |ui| {
+                        let available = ui.available_size();
+
+                        ui.add_sized(
+                            available,
+                            egui::TextEdit::multiline(&mut self.console)
+                                .desired_rows(0)
+                                .lock_focus(true)
+                                .frame(true)
+                                .interactive(false),
+                        );
+                    });
+            });
+
+
         egui::SidePanel::left("project_panel")
             .resizable(true)
             .show(ctx, |ui| {
-                ui.label("📁 프로젝트 구조");
+                ui.label("프로젝트 구조");
                 // 여기에 파일 목록, 탐색기 등 구현
             });
 
         egui::SidePanel::right("right_panel")
             .resizable(true)
+
             .show(ctx, |ui| {
-                ui.label("ℹ️ 유틸리티");
+                ui.label("유틸리티");
 
             });
 
-        egui::TopBottomPanel::bottom("console_panel")
-            .resizable(true)
-            .show(ctx, |ui| {
-                ui.label("🖨️ 출력 / 콘솔");
-                // 컴파일 결과, 로그, 오류 메시지 등
-            });
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {

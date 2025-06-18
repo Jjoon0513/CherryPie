@@ -10,7 +10,7 @@ use std::sync::Arc;
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions::default();
     eframe::run_native(
-        "CherryPie",
+        "Yedosis",
         options,
         Box::new(|cc| {
             setup_custom_fonts(&cc.egui_ctx);
