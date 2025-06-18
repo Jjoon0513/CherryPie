@@ -37,19 +37,25 @@ impl eframe::App for MainWindow {
             .show(ctx, |ui| {
                 ui.label("콘솔");
 
-                egui::Frame::none()
+                egui::Frame::new()
                     .fill(ui.visuals().panel_fill)
                     .show(ui, |ui| {
                         let available = ui.available_size();
 
-                        ui.add_sized(
-                            available,
-                            egui::TextEdit::multiline(&mut self.console)
-                                .desired_rows(0)
-                                .lock_focus(true)
-                                .frame(true)
-                                .interactive(false),
-                        );
+                        egui::ScrollArea::vertical()
+                            .max_height(300.0)
+                            .show(ui, |ui| {
+                                ui.add_sized(
+                                    available,
+                                    egui::TextEdit::multiline(&mut self.console)
+                                        .lock_focus(true)
+                                        .frame(true)
+                                        .interactive(false),
+                                );
+
+
+                            });
+
                     });
             });
 
